@@ -1,5 +1,6 @@
 import pickle
 import datetime
+import customtkinter as ctk
 
 """
 FlyDreamAir is a major airline which covers both international and domestic routes with a 
@@ -12,9 +13,7 @@ and has identified three potential projects:
     services such as food and drinks. 
 """
 
-#To sort a list of objects based on the attributes:
-# orig_list.sort(key=lambda x: x.attribute_name)
-#---------------------------------Classes---------------------------------
+#---------------------------------Data Classes---------------------------------
 
 class Customer:
     def __init__(self, customerID, firstName, lastName, contactNumber, email, address):
@@ -25,14 +24,19 @@ class Customer:
         self.email = email
         self.address = address
 
-    #Method to list customer details
     def list_customer_details(self, customer_id):
-        print(f"Account number: {customer_list[customer_id].customerID}")
-        print(f"Name: {customer_list[customer_id].firstName} {customer_list[customer_id].lastName}")
-        print(f"Contact Number: {customer_list[customer_id].contactNumber}")
-        print(f"Email: {customer_list[customer_id].email}")
-        print(f"Address: {customer_list[customer_id].address}")
-        print()
+
+        customer_details_list = []
+
+        customer_details_list.append(customer_list[customer_id].customerID)
+        customer_details_list.append(customer_list[customer_id].firstName)
+        customer_details_list.append(customer_list[customer_id].lastName)
+        customer_details_list.append(customer_list[customer_id].contactNumber)
+        customer_details_list.append(customer_list[customer_id].email)
+        customer_details_list.append(customer_list[customer_id].address)
+
+        return customer_details_list
+
 
 class Booking:
     def __init__(self, bookingID, bookingDate, status, totalPrice, seatNumber):
@@ -41,6 +45,7 @@ class Booking:
         self.status = status
         self.totalPrice = totalPrice
         self.seatNumber = seatNumber
+
 
 class Flight:
     def __init__(self, flightID, flightNumber, departureAirport, arrivalAirport, departureTime, arrivalTime, status, availableSeats):
@@ -53,6 +58,7 @@ class Flight:
         self.status = status
         self.availableSeats = availableSeats
 
+
 class InFlightService:
     def __init__(self, serviceID, name, description, price, availableOnRoute):
         self.serviceID = serviceID
@@ -61,12 +67,14 @@ class InFlightService:
         self.price = price
         self.availableOnRoute = availableOnRoute
 
+
 class Seat:
     def __init__(self, seatNumber, seatClass, price, isAvailable):
         self.seatNumber = seatNumber
         self.seatClass = seatClass
         self.price = price
         self.isAvailable = isAvailable
+
 
 class Payment:
     def __init__(self, paymentID, amount, paymentDate, paymentMethod, status):
@@ -76,10 +84,141 @@ class Payment:
         self.paymentMethod = paymentMethod
         self.status = status
 
+
+#---------------------------------Window Classes---------------------------------
+
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("FlyDreamAir")
+        self.geometry("600x400")
+        
+        # Show initial screen
+        self.show_login_screen()
+
+
+    #Clears window to make way for new content
+    def clear_window(self):
+        for widget in self.winfo_children():
+            widget.destroy()
+
+
+    def show_login_screen(self):
+        self.clear_window()
+
+        label = ctk.CTkLabel(self, text="Login Screen", font=("Helvetica", 20))
+        label.pack(pady=20)
+
+        label = ctk.CTkLabel(self, text="Do you have an existing account?", font=("Helvetica", 20))
+        label.pack(pady=16)
+
+        existing_account_button = ctk.CTkButton(self, text="Yes", command=self.show_account_login_screen)
+        existing_account_button.pack(pady=10)
+
+        new_account_button = ctk.CTkButton(self, text="No", command=self.show_create_account_screen)
+        new_account_button.pack(pady=10)
+
+    
+    def show_account_login_screen(self):
+        self.clear_window()
+
+        label = ctk.CTkLabel(self, text="Login Screen", font=("Helvetica", 20))
+        label.pack(pady=20)
+
+        label = ctk.CTkLabel(self, text="Do you have an existing account?", font=("Helvetica", 20))
+        label.pack(pady=16)
+
+        self.user_entry = ctk.CTkEntry(self, width=300, placeholder_text="Type here...")
+        self.user_entry.pack(pady=10, padx=10)
+
+        attempt_login = ctk.CTkButton(self, text="Submit", command=self.attempt_login)
+        attempt_login.pack(pady=10, padx=10)
+
+    def attempt_login(self):
+
+        user_input = int(self.user_entry.get())
+
+        if user_input + 1 > len(customer_list):
+            self.show_login_screen()
+        else:
+            self.show_home_screen()
+    
+    
+    def show_create_account_screen(self):
+        pass
+
+
+    def show_home_screen(self):
+        self.clear_window()
+        
+        label = ctk.CTkLabel(self, text="Home Screen", font=("Helvetica", 20))
+        label.pack(pady=20)
+
+        account_button = ctk.CTkButton(self, text="My Account", command=self.show_my_account)
+        account_button.pack(pady=10)
+        
+        settings_button = ctk.CTkButton(self, text="Settings", command=self.show_settings_screen)
+        settings_button.pack(pady=10)
+        
+        about_button = ctk.CTkButton(self, text="About", command=self.show_about_screen)
+        about_button.pack(pady=10)
+
+
+    def show_my_account(self):
+        self.clear_window()
+
+        label = ctk.CTkLabel(self, text="My Account", font=("Helvetica", 20))
+        label.pack(pady=20)
+
+        account_details = customer_list[customer_id].list_customer_details(customer_id)
+
+        account_details_string = f"Customer ID: {account_details[0]}\nName: {account_details[1]} {account_details[2]}\nContact Number: {account_details[3]}\nEmail: {account_details[4]}\nAddress: {account_details[5]}"
+    
+        label = ctk.CTkLabel(self, text=account_details_string, justify="center")
+        label.pack(pady=20, padx=20)
+
+        update_account_button = ctk.CTkButton(self, text="Update Account Details", command=self.show_update_account_screen)
+        update_account_button.pack(pady=10)
+
+        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
+        home_button.pack(pady=10)
+
+
+    def show_update_account_screen(self):
+        self.clear_window()
+        
+        label = ctk.CTkLabel(self, text="Please Confirm Your Details", font=("Helvetica", 20))
+        label.pack(pady=20)
+        
+        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
+        home_button.pack(pady=10)
+
+
+    def show_settings_screen(self):
+        self.clear_window()
+        
+        label = ctk.CTkLabel(self, text="Settings Screen", font=("Helvetica", 20))
+        label.pack(pady=20)
+        
+        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
+        home_button.pack(pady=10)
+    
+
+    def show_about_screen(self):
+        self.clear_window()
+        
+        label = ctk.CTkLabel(self, text="About Screen", font=("Helvetica", 20))
+        label.pack(pady=20)
+        
+        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
+        home_button.pack(pady=10)
+
+
 #---------------------------------Data Deserialisation---------------------------------
 
 
 customer_list = []
+customer_id = 0
 
 #Read data from file
 try:
@@ -88,89 +227,13 @@ try:
 except:
     pass
 
+#Sort customer list based on customerID
+customer_list.sort(key=lambda x: x.customerID)
 #---------------------------------Main---------------------------------
 
 if __name__ == "__main__":
 
-    new_customer = "Yes"
+    #Create app window
+    app = App()
+    app.mainloop()
 
-    while True:
-        #Default to customer creation if no customers on file
-        if len(customer_list) > 0: 
-            new_customer = input("Are you a new customer? yes/no ").title()
-
-        #Create new customer
-        if new_customer == "Yes":
-            customer_id = len(customer_list)
-            fname = input("What is your first name? ")
-            lname = input("What is your last name? ")
-            cnum = int(input("What is your contact number? "))
-            email = input("What is your email? ")
-            addr = input("What is your address? ")
-            cust = Customer(customer_id, fname, lname, cnum, email, addr)
-
-            customer_list.append(cust)
-            customer_list.sort(key=lambda x: x.customerID)
-            print("Account succesfully created")
-            print(f"Your account ID is {customer_id}")
-            print()
-            break
-
-        #Confirm customer account number
-        elif new_customer == "No":
-            while True:
-                customer_id = int(input("Please enter your account number: "))
-                if customer_id + 1 > len(customer_list):
-                    print("This account does not exist")
-                else:
-                    break
-                break
-            break
-
-        #Invalid input handling
-        else:
-            print("Invalid option")
-
-    #Loop to display menu
-    while True:
-        print()
-        print("Menu")
-        print("1. My Account")
-        print("2. Bookings")
-        print("3. Upcoming Flights")
-        print("4. Quit")
-        user_choice = int(input("Enter Choice: "))
-        print()
-
-        #My Account
-        if user_choice == 1:
-            print("Your account details are:")
-            customer_list[customer_id].list_customer_details(customer_id)
-
-            print("Menu")
-            print("1. Update account details")
-            print("2. Return to main menu")
-            user_choice = int(input("Enter Choice: "))
-            print()
-
-        #Bookings
-        if user_choice == 2:
-            pass
-
-        #Upcoming Flights
-        if user_choice == 3:
-            pass
-
-        #Quit
-        if user_choice == 4:
-
-            #---------------------------------Data Serialisation---------------------------------
-
-            #Sort list based on object attributes
-            customer_list.sort(key=lambda x: x.customerID)
-
-            #Write customer list to file
-            with open('customers.pkl', 'wb') as f:
-                pickle.dump(customer_list, f)
-                f.close()
-            break
