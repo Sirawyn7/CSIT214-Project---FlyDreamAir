@@ -1,6 +1,10 @@
 import pickle
 import datetime
 import customtkinter as ctk
+from customtkinter import CTkImage
+import os
+from PIL import Image, ImageTk
+import random
 
 """
 FlyDreamAir is a major airline which covers both international and domestic routes with a 
@@ -91,128 +95,120 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("FlyDreamAir")
-        self.geometry("600x400")
-        
-        # Show initial screen
-        self.show_login_screen()
+        self.geometry("1000x600")
+        self.frames = {}
+        for F in (MainPage, SeatSelectionPage):
+            page_name = F.__name__
+            frame = F(parent=self, controller=self)
+            self.frames[page_name] = frame
+            frame.place(relwidth=1, relheight=1)
+
+        self.show_frame("MainPage")
+
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise()
+#---------------------------------Page Classes---------------------------------
+
+class MainPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1000, 600))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1000, 600))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50)
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+
+        for label in ["Book flights", "Manage flight reservations", "Select seats", "In flight Services"]:
+            btn = ctk.CTkButton(navbar, text=label)
+            if label == "Select seats":
+                btn.configure(command=lambda: controller.show_frame("SeatSelectionPage"))
+            btn.pack(side="left", padx=15, pady=5)
+
+        ctk.CTkOptionMenu(navbar, values=["My Account", "Upcoming Flights", "Past Flights", "Contact Us", "Get Help"]).pack(side="right", padx=20)
+
+        search_wrapper = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=50)
+        search_wrapper.pack(pady=40, padx=20)
+
+        input_frame = ctk.CTkFrame(search_wrapper, fg_color="#ffffff", corner_radius=0)
+        input_frame.grid(row=0, column=0, sticky="w", padx=(20, 10), pady=10)
+
+        self.from_entry = self.create_styled_entry(input_frame, "From:")
+        self.to_entry = self.create_styled_entry(input_frame, "To:")
+        self.when_entry = self.create_styled_entry(input_frame, "When:")
+
+        search_btn = ctk.CTkButton(search_wrapper, text="Search Flights", fg_color="#7B42F6", text_color="white", font=("Helvetica", 14, "bold"), corner_radius=20)
+        search_btn.grid(row=0, column=1, sticky="e", padx=(10, 20), pady=10)
+
+        # Configure grid columns for proper spacing
+        search_wrapper.grid_columnconfigure(0, weight=1)
+        search_wrapper.grid_columnconfigure(1, weight=0)
+
+    def create_styled_entry(self, parent, label):
+        frame = ctk.CTkFrame(parent, fg_color="#E5E5E5", corner_radius=20)
+        frame.grid(row=0, column=len(parent.winfo_children()), padx=15, pady=10)
+        ctk.CTkLabel(frame, text=label, font=("Helvetica", 14, "bold")).pack(side="left", padx=10)
+        entry = ctk.CTkEntry(frame, width=120)
+        entry.pack(side="left", padx=10)
+        return entry
 
 
-    #Clears window to make way for new content
-    def clear_window(self):
-        for widget in self.winfo_children():
-            widget.destroy()
+class SeatSelectionPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
 
+        navbar = ctk.CTkFrame(self, height=50)
+        navbar.pack(fill="x")
 
-    def show_login_screen(self):
-        self.clear_window()
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="Seat Selection", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        label = ctk.CTkLabel(self, text="Login Screen", font=("Helvetica", 20))
-        label.pack(pady=20)
+        seat_frame = ctk.CTkFrame(self)
+        seat_frame.pack(padx=20, pady=10)
 
-        label = ctk.CTkLabel(self, text="Do you have an existing account?", font=("Helvetica", 20))
-        label.pack(pady=16)
+        self.seats = {}
+        rows = 40
+        cols_labels = ['A','B','C','D','E','F','G','H','J','K']
 
-        existing_account_button = ctk.CTkButton(self, text="Yes", command=self.show_account_login_screen)
-        existing_account_button.pack(pady=10)
+        unavailable_seats = set(random.sample([f"{r+1}{c}" for r in range(rows) for c in cols_labels], k=int(rows*len(cols_labels)*0.15)))
 
-        new_account_button = ctk.CTkButton(self, text="No", command=self.show_create_account_screen)
-        new_account_button.pack(pady=10)
+        for r in range(rows):
+            for c_idx, c in enumerate(cols_labels):
+                seat_id = f"{r+1}{c}"
+                btn = ctk.CTkButton(seat_frame, text="", width=25, height=25, corner_radius=12)
+                btn.grid(row=c_idx, column=r, padx=3, pady=3)
+                if seat_id in unavailable_seats:
+                    btn.configure(fg_color="red", hover_color="#ff4d4d", state="disabled")
+                else:
+                    btn.configure(fg_color="gray", hover_color="#b3b3b3")
+                    btn.configure(command=lambda s=seat_id: self.toggle_seat(s))
+                self.seats[seat_id] = btn
 
-    
-    def show_account_login_screen(self):
-        self.clear_window()
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
 
-        label = ctk.CTkLabel(self, text="Login Screen", font=("Helvetica", 20))
-        label.pack(pady=20)
+        self.selected_seats = set()
 
-        label = ctk.CTkLabel(self, text="Do you have an existing account?", font=("Helvetica", 20))
-        label.pack(pady=16)
-
-        self.user_entry = ctk.CTkEntry(self, width=300, placeholder_text="Type here...")
-        self.user_entry.pack(pady=10, padx=10)
-
-        attempt_login = ctk.CTkButton(self, text="Submit", command=self.attempt_login)
-        attempt_login.pack(pady=10, padx=10)
-
-    def attempt_login(self):
-
-        user_input = int(self.user_entry.get())
-
-        if user_input + 1 > len(customer_list):
-            self.show_login_screen()
+    def toggle_seat(self, seat_id):
+        btn = self.seats[seat_id]
+        if seat_id in self.selected_seats:
+            btn.configure(fg_color="gray")
+            self.selected_seats.remove(seat_id)
         else:
-            self.show_home_screen()
-    
-    
-    def show_create_account_screen(self):
-        pass
-
-
-    def show_home_screen(self):
-        self.clear_window()
-        
-        label = ctk.CTkLabel(self, text="Home Screen", font=("Helvetica", 20))
-        label.pack(pady=20)
-
-        account_button = ctk.CTkButton(self, text="My Account", command=self.show_my_account)
-        account_button.pack(pady=10)
-        
-        settings_button = ctk.CTkButton(self, text="Settings", command=self.show_settings_screen)
-        settings_button.pack(pady=10)
-        
-        about_button = ctk.CTkButton(self, text="About", command=self.show_about_screen)
-        about_button.pack(pady=10)
-
-
-    def show_my_account(self):
-        self.clear_window()
-
-        label = ctk.CTkLabel(self, text="My Account", font=("Helvetica", 20))
-        label.pack(pady=20)
-
-        account_details = customer_list[customer_id].list_customer_details(customer_id)
-
-        account_details_string = f"Customer ID: {account_details[0]}\nName: {account_details[1]} {account_details[2]}\nContact Number: {account_details[3]}\nEmail: {account_details[4]}\nAddress: {account_details[5]}"
-    
-        label = ctk.CTkLabel(self, text=account_details_string, justify="center")
-        label.pack(pady=20, padx=20)
-
-        update_account_button = ctk.CTkButton(self, text="Update Account Details", command=self.show_update_account_screen)
-        update_account_button.pack(pady=10)
-
-        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
-        home_button.pack(pady=10)
-
-
-    def show_update_account_screen(self):
-        self.clear_window()
-        
-        label = ctk.CTkLabel(self, text="Please Confirm Your Details", font=("Helvetica", 20))
-        label.pack(pady=20)
-        
-        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
-        home_button.pack(pady=10)
-
-
-    def show_settings_screen(self):
-        self.clear_window()
-        
-        label = ctk.CTkLabel(self, text="Settings Screen", font=("Helvetica", 20))
-        label.pack(pady=20)
-        
-        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
-        home_button.pack(pady=10)
-    
-
-    def show_about_screen(self):
-        self.clear_window()
-        
-        label = ctk.CTkLabel(self, text="About Screen", font=("Helvetica", 20))
-        label.pack(pady=20)
-        
-        home_button = ctk.CTkButton(self, text="Back to Home", command=self.show_home_screen)
-        home_button.pack(pady=10)
-
+            btn.configure(fg_color="blue")
+            self.selected_seats.add(seat_id)
 
 #---------------------------------Data Deserialisation---------------------------------
 
@@ -236,4 +232,3 @@ if __name__ == "__main__":
     #Create app window
     app = App()
     app.mainloop()
-
