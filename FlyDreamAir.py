@@ -95,9 +95,9 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("FlyDreamAir")
-        self.geometry("1000x600")
+        self.geometry("1050x630")
         self.frames = {}
-        for F in (MainPage, SeatSelectionPage):
+        for F in (MainPage, FlightBookingPage, ManageFlightsPage, InFlightServicesPage, MyAccountPage, ContactUsPage):
             page_name = F.__name__
             frame = F(parent=self, controller=self)
             self.frames[page_name] = frame
@@ -116,29 +116,36 @@ class MainPage(ctk.CTkFrame):
         # Load and display background image
         image_path = "assets/plane.jpg"
         pil_image = Image.open(image_path)
-        pil_image = pil_image.resize((1000, 600))  # resize to desired size
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
 
-        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1000, 600))
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
 
         bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
         bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         self.controller = controller
 
-        navbar = ctk.CTkFrame(self, height=50)
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
         navbar.pack(fill="x")
 
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
 
-        for label in ["Book flights", "Manage flight reservations", "Select seats", "In flight Services"]:
+        for label in ["Book Flights", "Manage Flight Reservations", "In Flight Services", "My Account", "Contact Us"]:
             btn = ctk.CTkButton(navbar, text=label)
-            if label == "Select seats":
-                btn.configure(command=lambda: controller.show_frame("SeatSelectionPage"))
+            if label == "Book Flights":
+                btn.configure(command=lambda: controller.show_frame("FlightBookingPage"))
+            if label == "Manage Flight Reservations":
+                btn.configure(command=lambda: controller.show_frame("ManageFlightsPage"))
+            if label == "In Flight Services":
+                btn.configure(command=lambda: controller.show_frame("InFlightServicesPage"))
+            if label == "My Account":
+                btn.configure(command=lambda: controller.show_frame("MyAccountPage"))
+            if label == "Contact Us":
+                btn.configure(command=lambda: controller.show_frame("ContactUsPage"))
             btn.pack(side="left", padx=15, pady=5)
 
-        ctk.CTkOptionMenu(navbar, values=["My Account", "Upcoming Flights", "Past Flights", "Contact Us", "Get Help"]).pack(side="right", padx=20)
-
-        search_wrapper = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=50)
+        #Search bar
+        search_wrapper = ctk.CTkFrame(self, fg_color="#ffffff", bg_color="#0f2f80", corner_radius=50)
         search_wrapper.pack(pady=40, padx=20)
 
         input_frame = ctk.CTkFrame(search_wrapper, fg_color="#ffffff", corner_radius=0)
@@ -158,12 +165,68 @@ class MainPage(ctk.CTkFrame):
     def create_styled_entry(self, parent, label):
         frame = ctk.CTkFrame(parent, fg_color="#E5E5E5", corner_radius=20)
         frame.grid(row=0, column=len(parent.winfo_children()), padx=15, pady=10)
-        ctk.CTkLabel(frame, text=label, font=("Helvetica", 14, "bold")).pack(side="left", padx=10)
+        ctk.CTkLabel(frame, text=label, font=("Helvetica", 14, "bold")).pack(side="left", padx=10, pady=3)
         entry = ctk.CTkEntry(frame, width=120)
         entry.pack(side="left", padx=10)
         return entry
 
 
+class FlightBookingPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="Flight Booking", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        seat_frame = ctk.CTkFrame(self)
+        seat_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
+
+
+class ManageFlightsPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="Manage Flights", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        seat_frame = ctk.CTkFrame(self)
+        seat_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
+
+"""
 class SeatSelectionPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -209,6 +272,122 @@ class SeatSelectionPage(ctk.CTkFrame):
         else:
             btn.configure(fg_color="blue")
             self.selected_seats.add(seat_id)
+"""
+
+class InFlightServicesPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="In Flight Services", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        seat_frame = ctk.CTkFrame(self)
+        seat_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
+
+
+class MyAccountPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="My Account", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        account_frame = ctk.CTkFrame(self, fg_color="#ffffff")
+
+        labels = ["Customer ID:", "Name:", "Contact Number:", "Email:", "Address:"]
+        values = customer_list[0].list_customer_details(0)
+        adjusted_values = []
+        #Combine first and last names into 1 value in list
+        for index, value in enumerate(values):
+            if index == 1:
+                adjusted_values.append(f"{values[1]} {values[2]}")
+            elif index == 2:
+                pass
+            else:
+                adjusted_values.append(value)
+
+        for i in range(len(adjusted_values)):
+            label = ctk.CTkLabel(account_frame, text=labels[i], font=("Helvetica", 14, "bold"))
+            value = ctk.CTkLabel(account_frame, text=adjusted_values[i], font=("Helvetica", 14))
+            label.grid(row=i, column=0, padx=10, pady=10)
+            value.grid(row=i, column=1, padx=10, pady=10)
+
+        account_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", bg_color="#3574e0", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
+
+
+class ContactUsPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="Contact Us", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+        
+        content_frame = ctk.CTkFrame(self, fg_color="#ffffff")
+        
+
+        #Define Labels & Values
+        labels = ["Email:", "Phone:", "Address:", "X:", "Facebook:", "Instagram:"]
+        values = ["info@flydreamair.com", "+61 1234 5678", "FlyDreamAir Customer Relations P.O. Box 12345, Fake St, NSW, 2500", "@FlyDreamAir", "facebook.com/flydreamair", "@flydreamair_official"]
+
+        for i in range(len(labels)):
+            label = ctk.CTkLabel(content_frame, text=labels[i], font=("Helvetica", 14, "bold"))
+            value = ctk.CTkLabel(content_frame, text=values[i], font=("Helvetica", 14))
+            label.grid(row=i, column=0, padx=10, pady=10)
+            value.grid(row=i, column=1, padx=10, pady=10)
+
+        content_frame.pack(padx=20, pady=30)
+        
+
+        back_btn = ctk.CTkButton(self, text="Back", bg_color="#599efd", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
 
 #---------------------------------Data Deserialisation---------------------------------
 
