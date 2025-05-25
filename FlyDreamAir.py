@@ -97,7 +97,7 @@ class App(ctk.CTk):
         self.title("FlyDreamAir")
         self.geometry("1050x630")
         self.frames = {}
-        for F in (MainPage, FlightBookingPage, ManageFlightsPage, InFlightServicesPage, MyAccountPage, ContactUsPage):
+        for F in (MainPage, SeatSelectionPage, ManageFlightsPage, InFlightServicesPage, MyAccountPage, ContactUsPage):
             page_name = F.__name__
             frame = F(parent=self, controller=self)
             self.frames[page_name] = frame
@@ -133,7 +133,7 @@ class MainPage(ctk.CTkFrame):
         for label in ["Book Flights", "Manage Flight Reservations", "In Flight Services", "My Account", "Contact Us"]:
             btn = ctk.CTkButton(navbar, text=label)
             if label == "Book Flights":
-                btn.configure(command=lambda: controller.show_frame("FlightBookingPage"))
+                btn.configure(command=lambda: controller.show_frame("SeatSelectionPage"))
             if label == "Manage Flight Reservations":
                 btn.configure(command=lambda: controller.show_frame("ManageFlightsPage"))
             if label == "In Flight Services":
@@ -226,32 +226,53 @@ class ManageFlightsPage(ctk.CTkFrame):
         back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
         back_btn.pack(pady=20)
 
-"""
+
 class SeatSelectionPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, fg_color="#83c1fc")
+        
         self.controller = controller
 
-        navbar = ctk.CTkFrame(self, height=50)
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
         navbar.pack(fill="x")
 
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
         ctk.CTkLabel(navbar, text="Seat Selection", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        seat_frame = ctk.CTkFrame(self)
+        seat_frame = ctk.CTkFrame(self, fg_color="#ffffff")
         seat_frame.pack(padx=20, pady=10)
 
         self.seats = {}
-        rows = 40
-        cols_labels = ['A','B','C','D','E','F','G','H','J','K']
+        cols = 32
+        cols_labels = ['A','B','C','D','E','F','G','H','J']
 
-        unavailable_seats = set(random.sample([f"{r+1}{c}" for r in range(rows) for c in cols_labels], k=int(rows*len(cols_labels)*0.15)))
+        unavailable_seats = set(random.sample([f"{r+1}{c}" for r in range(cols) for c in cols_labels], k=int(cols*len(cols_labels)*0.15)))
 
-        for r in range(rows):
-            for c_idx, c in enumerate(cols_labels):
+        for r in range(cols):
+            #Add column labels above
+            col_label = ctk.CTkLabel(seat_frame, text=str(r+1), font=("Helvetica", 12, "bold"))
+            col_label.grid(row=0, column=r+1, padx=3, pady=(3, 8))
+
+        # Add row labels (letters) on the left and seat buttons
+        for c_idx, c in enumerate(cols_labels):
+            # Add extra padding for row spacing
+            extra_pady = 0
+            if c_idx == 2:
+                extra_pady = 15
+            elif c_idx == 5:
+                extra_pady = 15
+            
+            # Add row label on the left
+            row_label = ctk.CTkLabel(seat_frame, text=c, font=("Helvetica", 12, "bold"))
+            row_label.grid(row=c_idx+1, column=0, padx=(3, 8), pady=(3, 3 + extra_pady))
+            
+            # Add seat buttons
+            for r in range(cols):
                 seat_id = f"{r+1}{c}"
-                btn = ctk.CTkButton(seat_frame, text="", width=25, height=25, corner_radius=12)
-                btn.grid(row=c_idx, column=r, padx=3, pady=3)
+                btn = ctk.CTkButton(seat_frame, text="", width=25, height=25, corner_radius=5)
+                
+                btn.grid(row=c_idx+1, column=r+1, padx=3, pady=(3, 3 + extra_pady))
+
                 if seat_id in unavailable_seats:
                     btn.configure(fg_color="red", hover_color="#ff4d4d", state="disabled")
                 else:
@@ -272,7 +293,7 @@ class SeatSelectionPage(ctk.CTkFrame):
         else:
             btn.configure(fg_color="blue")
             self.selected_seats.add(seat_id)
-"""
+
 
 class InFlightServicesPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
