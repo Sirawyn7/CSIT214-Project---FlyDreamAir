@@ -64,12 +64,23 @@ class Flight:
 
 
 class InFlightService:
-    def __init__(self, serviceID, name, description, price, availableOnRoute):
+    def __init__(self, serviceID, name, description, price):
         self.serviceID = serviceID
         self.name = name
         self.description = description
         self.price = price
-        self.availableOnRoute = availableOnRoute
+
+    def list_service_details(self, service_id):
+
+        service_details_list = []
+
+        service_details_list.append(services_list[service_id].serviceID)
+        service_details_list.append(services_list[service_id].name)
+        service_details_list.append(services_list[service_id].description)
+        service_details_list.append(services_list[service_id].price)
+
+        return service_details_list
+
 
 
 class Seat:
@@ -97,7 +108,7 @@ class App(ctk.CTk):
         self.title("FlyDreamAir")
         self.geometry("1050x630")
         self.frames = {}
-        for F in (MainPage, SeatSelectionPage, ManageFlightsPage, InFlightServicesPage, MyAccountPage, ContactUsPage):
+        for F in (MainPage, SeatSelectionPage, ManageFlightsPage, InFlightServicesPage, FoodSelectionPage, DrinkSelectionPage, MyAccountPage, ContactUsPage):
             page_name = F.__name__
             frame = F(parent=self, controller=self)
             self.frames[page_name] = frame
@@ -316,11 +327,123 @@ class InFlightServicesPage(ctk.CTkFrame):
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
         ctk.CTkLabel(navbar, text="In Flight Services", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        seat_frame = ctk.CTkFrame(self)
-        seat_frame.pack(padx=20, pady=10)
+        #Load in food and drink option images
+        food_pil = Image.open("assets/food_image.jpg")
+        food_pil = food_pil.resize((180, 370))
+        self.food_image = CTkImage(light_image=food_pil, dark_image=food_pil, size=(180, 370))
 
-        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        drink_pil = Image.open("assets/drink_image.jpg")
+        drink_pil = drink_pil.resize((180, 370))
+        self.drink_image = CTkImage(light_image=drink_pil, dark_image=drink_pil, size=(180, 370))
+
+        button_frame = ctk.CTkFrame(self, fg_color="#83c1fc")
+        button_frame.pack(pady=50)
+
+        food_btn = ctk.CTkButton(button_frame, image=self.food_image, text="Food Menu", compound="top", width=180, height=370, font=("Helvetica", 16), command=lambda: controller.show_frame("FoodSelectionPage"))
+        food_btn.pack(side="left", padx=20)
+
+        drink_btn = ctk.CTkButton(button_frame, image=self.drink_image, text="Drink Menu", compound="top", width=180, height=370, font=("Helvetica", 16), command=lambda: controller.show_frame("DrinkSelectionPage"))
+        drink_btn.pack(side="left", padx=20)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"), bg_color="#83c1fc")
         back_btn.pack(pady=20)
+
+
+class FoodSelectionPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="In Flight Food Booking", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        food_frame = ctk.CTkFrame(self, fg_color="#ffffff")
+
+        food_index = []
+
+        for i in range(len(services_list)):
+            if services_list[i].description == "Food":
+                food_index.append(i)
+                food_name = ctk.CTkLabel(food_frame, text=services_list[i].name, font=("Helvetica", 14, "bold"))
+                food_price = ctk.CTkLabel(food_frame, text=f"${services_list[i].price}", font=("Helvetica", 14))
+                food_index[i] = ctk.CTkEntry(food_frame, placeholder_text="Quantity")
+                food_name.grid(row=i, column=0, padx=10, pady=10)
+                food_price.grid(row=i, column=1, padx=10, pady=10)
+                food_index[i].grid(row=i, column=2, padx=10, pady=10)
+        
+        submit_btn = ctk.CTkButton(food_frame, text="Submit", command=lambda: self.submit_food_order(food_index))
+        submit_btn.grid(pady=20, column=1)
+
+        food_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("InFlightServicesPage"))
+        back_btn.pack(pady=20)
+
+    def submit_food_order(self, food_index):
+        for i in range(len(food_index)):
+            print(food_index[i].get())
+
+
+class DrinkSelectionPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        # Load and display background image
+        image_path = "assets/plane.jpg"
+        pil_image = Image.open(image_path)
+        pil_image = pil_image.resize((1050, 630))  # resize to desired size
+
+        self.bg_image = CTkImage(light_image=pil_image, dark_image=pil_image, size=(1050, 630))
+
+        bg_label = ctk.CTkLabel(self, image=self.bg_image, text="")
+        bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        self.controller = controller
+
+        navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
+        navbar.pack(fill="x")
+
+        ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
+        ctk.CTkLabel(navbar, text="In Flight Drink Booking", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+
+        drink_frame = ctk.CTkFrame(self, fg_color="#ffffff")
+
+        drink_index = []
+
+        for i in range(len(services_list)):
+            if services_list[i].description == "Drink":
+                drink_index.append(i)
+                print(i)
+                drink_name = ctk.CTkLabel(drink_frame, text=services_list[i].name, font=("Helvetica", 14, "bold"))
+                drink_price = ctk.CTkLabel(drink_frame, text=f"${services_list[i].price}", font=("Helvetica", 14))
+                drink_index[len(drink_index) - 1] = ctk.CTkEntry(drink_frame, placeholder_text="Quantity")
+                drink_name.grid(row=i, column=0, padx=10, pady=10)
+                drink_price.grid(row=i, column=1, padx=10, pady=10)
+                drink_index[len(drink_index) - 1].grid(row=i, column=2, padx=10, pady=10)
+
+        submit_btn = ctk.CTkButton(drink_frame, text="Submit", command=lambda: self.submit_drink_order(drink_index))
+        submit_btn.grid(pady=20, column=1)
+
+        drink_frame.pack(padx=20, pady=10)
+
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("InFlightServicesPage"))
+        back_btn.pack(pady=20)
+
+    def submit_drink_order(self, drink_index):
+        for i in range(len(drink_index)):
+            print(drink_index[i].get())
 
 
 class MyAccountPage(ctk.CTkFrame):
@@ -412,11 +535,11 @@ class ContactUsPage(ctk.CTkFrame):
 
 #---------------------------------Data Deserialisation---------------------------------
 
-
+services_list = []
 customer_list = []
 customer_id = 0
 
-#Read data from file
+#Read customer data
 try:
     with open('customers.pkl', 'rb') as f:
         customer_list = pickle.load(f) # deserialize into object using load()
@@ -425,6 +548,16 @@ except:
 
 #Sort customer list based on customerID
 customer_list.sort(key=lambda x: x.customerID)
+
+#Read in flight service data
+try:
+    with open('services.pkl', 'rb') as f:
+        services_list = pickle.load(f) # deserialize into object using load()
+except:
+    pass
+
+#Sort customer list based on customerID
+services_list.sort(key=lambda x: x.serviceID)
 #---------------------------------Main---------------------------------
 
 if __name__ == "__main__":
