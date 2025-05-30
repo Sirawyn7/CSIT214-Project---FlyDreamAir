@@ -2,8 +2,7 @@ import pickle
 import datetime
 import customtkinter as ctk
 from customtkinter import CTkImage
-import os
-from PIL import Image, ImageTk
+from PIL import Image
 import random
 
 """
@@ -20,13 +19,14 @@ and has identified three potential projects:
 #---------------------------------Data Classes---------------------------------
 
 class Customer:
-    def __init__(self, customerID, firstName, lastName, contactNumber, email, address):
+    def __init__(self, customerID, firstName, lastName, contactNumber, email, address, bookings):
         self.customerID = customerID
         self.firstName = firstName
         self.lastName = lastName
         self.contactNumber = contactNumber
         self.email = email
         self.address = address
+        self.bookings = bookings
 
     def list_customer_details(self, customer_id):
 
@@ -43,24 +43,25 @@ class Customer:
 
 
 class Booking:
-    def __init__(self, bookingID, bookingDate, status, totalPrice, seatNumber):
+    def __init__(self, flightID, bookingID, bookingDate, totalPrice, seatNumber):
+        self.flightID = flightID
         self.bookingID = bookingID
         self.bookingDate = bookingDate
-        self.status = status
         self.totalPrice = totalPrice
         self.seatNumber = seatNumber
 
 
 class Flight:
-    def __init__(self, flightID, flightNumber, departureAirport, arrivalAirport, departureTime, arrivalTime, status, availableSeats):
+    def __init__(self, flightID, flightNumber, departureAirport, arrivalAirport, departureTime, arrivalTime, price, status, bookedSeats):
         self.flightID = flightID
         self.flightNumber = flightNumber
         self.departureAirport = departureAirport
         self.arrivalAirport = arrivalAirport
         self.departureTime = departureTime
         self.arrivalTime = arrivalTime
+        self.price = price
         self.status = status
-        self.availableSeats = availableSeats
+        self.bookedSeats = bookedSeats
 
 
 class InFlightService:
@@ -82,24 +83,6 @@ class InFlightService:
         return service_details_list
 
 
-
-class Seat:
-    def __init__(self, seatNumber, seatClass, price, isAvailable):
-        self.seatNumber = seatNumber
-        self.seatClass = seatClass
-        self.price = price
-        self.isAvailable = isAvailable
-
-
-class Payment:
-    def __init__(self, paymentID, amount, paymentDate, paymentMethod, status):
-        self.paymentID = paymentID
-        self.amount = amount
-        self.paymentDate = paymentDate
-        self.paymentMethod = paymentMethod
-        self.status = status
-
-
 #---------------------------------Window Classes---------------------------------
 
 class App(ctk.CTk):
@@ -108,7 +91,12 @@ class App(ctk.CTk):
         self.title("FlyDreamAir")
         self.geometry("1050x630")
         self.frames = {}
-        for F in (MainPage, SeatSelectionPage, ManageFlightsPage, InFlightServicesPage, FoodSelectionPage, DrinkSelectionPage, MyAccountPage, ContactUsPage):
+
+        #Data storage to track between frames
+        self.matching_flights = []
+        self.selected_flight = None
+
+        for F in (MainPage, SeatSelectionPage, FlightResultsPage, ManageFlightsPage, InFlightServicesPage, FoodSelectionPage, DrinkSelectionPage, MyAccountPage, ContactUsPage):
             page_name = F.__name__
             frame = F(parent=self, controller=self)
             self.frames[page_name] = frame
@@ -119,6 +107,9 @@ class App(ctk.CTk):
     def show_frame(self, page_name):
         frame = self.frames[page_name]
         frame.tkraise()
+
+        if page_name == "FlightResultsPage" and hasattr(frame, 'load_flights'):
+            frame.load_flights()
 #---------------------------------Page Classes---------------------------------
 
 class MainPage(ctk.CTkFrame):
@@ -141,10 +132,8 @@ class MainPage(ctk.CTkFrame):
 
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
 
-        for label in ["Book Flights", "Manage Flight Reservations", "In Flight Services", "My Account", "Contact Us"]:
+        for label in ["Manage Flight Reservations", "In Flight Services", "My Account", "Contact Us"]:
             btn = ctk.CTkButton(navbar, text=label)
-            if label == "Book Flights":
-                btn.configure(command=lambda: controller.show_frame("SeatSelectionPage"))
             if label == "Manage Flight Reservations":
                 btn.configure(command=lambda: controller.show_frame("ManageFlightsPage"))
             if label == "In Flight Services":
@@ -162,11 +151,12 @@ class MainPage(ctk.CTkFrame):
         input_frame = ctk.CTkFrame(search_wrapper, fg_color="#ffffff", corner_radius=0)
         input_frame.grid(row=0, column=0, sticky="w", padx=(20, 10), pady=10)
 
+       
         self.from_entry = self.create_styled_entry(input_frame, "From:")
         self.to_entry = self.create_styled_entry(input_frame, "To:")
-        self.when_entry = self.create_styled_entry(input_frame, "When:")
+        self.date_entry = self.create_styled_entry(input_frame, "Date:")
 
-        search_btn = ctk.CTkButton(search_wrapper, text="Search Flights", fg_color="#7B42F6", text_color="white", font=("Helvetica", 14, "bold"), corner_radius=20)
+        search_btn = ctk.CTkButton(search_wrapper, text="Search Flights", fg_color="#7B42F6", text_color="white", font=("Helvetica", 14, "bold"), corner_radius=20, command=lambda: self.submit_flight_search())
         search_btn.grid(row=0, column=1, sticky="e", padx=(10, 20), pady=10)
 
         # Configure grid columns for proper spacing
@@ -180,9 +170,62 @@ class MainPage(ctk.CTkFrame):
         entry = ctk.CTkEntry(frame, width=120)
         entry.pack(side="left", padx=10)
         return entry
+    
+    def submit_flight_search(self):
+        from_airport = self.from_entry.get()
+        to_airport = self.to_entry.get()
+        travel_date = self.date_entry.get()
+
+        matching_flights = []
+
+        #Error handling to confirm all 3 fields have inputs
+        if not from_airport or not to_airport or not travel_date:
+            error_frame = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0)
+            error_frame.pack(padx=10)
+
+            error_label = ctk.CTkLabel(error_frame, text="Error: All fields (from, to, date) must be provided", font=("Helvetica", 14, "bold"))
+            error_label.pack(pady=10, padx=10)
+
+            return matching_flights
+        
+        try:
+            search_date = datetime.datetime.strptime(travel_date, "%Y-%m-%d").date()
+        except ValueError:
+            error_frame = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0)
+            error_frame.pack(padx=10)
+
+            error_label = ctk.CTkLabel(error_frame, text="Error: Date must be in format YYYY-MM-DD (e.g., 2025-06-15)", font=("Helvetica", 14, "bold"))
+            error_label.pack(pady=10, padx=10)
+            return matching_flights
+
+        #Converts to uppercase and removes whitespaces to prevent syntax issues
+        from_airport = from_airport.upper().strip()
+        to_airport = to_airport.upper().strip()
+
+        # Search through all flights
+        for flight in flight_list:
+            # Check if departure airport matches
+            if flight.departureAirport.upper() == from_airport:
+                # Check if arrival airport matches
+                if flight.arrivalAirport.upper() == to_airport:
+                    # Check if date matches
+                    if flight.departureTime.date() == search_date:
+                        matching_flights.append(flight)
+
+        if len(matching_flights) == 0:
+            error_frame = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0)
+            error_frame.pack(padx=10)
+
+            error_label = ctk.CTkLabel(error_frame, text="No Flights are available for this period", font=("Helvetica", 14, "bold"))
+            error_label.pack(pady=10, padx=10)
+
+        else:
+            self.controller.matching_flights = matching_flights
+            self.controller.show_frame("FlightResultsPage")
+        return matching_flights
 
 
-class FlightBookingPage(ctk.CTkFrame):
+class FlightResultsPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         # Load and display background image
@@ -197,17 +240,78 @@ class FlightBookingPage(ctk.CTkFrame):
 
         self.controller = controller
 
+        # Navbar
         navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
         navbar.pack(fill="x")
 
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
-        ctk.CTkLabel(navbar, text="Flight Booking", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
+        ctk.CTkLabel(navbar, text="Available Flights", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        seat_frame = ctk.CTkFrame(self)
-        seat_frame.pack(padx=20, pady=10)
+        # Create scrollable frame for flight results
+        self.content_frame = ctk.CTkScrollableFrame(self, fg_color="#ffffff")
+        self.content_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
+        # Back button at bottom
         back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
-        back_btn.pack(pady=20)
+        back_btn.pack(pady=10)
+
+        # Create headers
+        headers_frame = ctk.CTkFrame(self.content_frame, fg_color="#f0f0f0")
+        headers_frame.pack(fill="x", pady=(0, 10))
+
+        headers = ["Flight Number", "Route", "Departure Time", "Price", "Select"]
+        for col, header in enumerate(headers):
+            header_label = ctk.CTkLabel(headers_frame, text=header, font=("Helvetica", 14, "bold"))
+            header_label.grid(row=0, column=col, padx=10, pady=10, sticky="ew")
+        
+        # Configure column weights for proper spacing
+        for i in range(len(headers)):
+            headers_frame.grid_columnconfigure(i, weight=1)
+
+        # Load flights when frame is shown
+        self.load_flights()
+
+
+    def load_flights(self):
+
+        # Display flights
+        for i, flight in enumerate(self.controller.matching_flights):
+            flight_frame = ctk.CTkFrame(self.content_frame, fg_color="#ffffff", border_width=1)
+            flight_frame.pack(fill="x", pady=2)
+
+            # Flight Number
+            flight_num = getattr(flight, 'flightNumber', f'FL{i+1}')
+            flight_label = ctk.CTkLabel(flight_frame, text=str(flight_num))
+            flight_label.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+            
+            # Route
+            from_airport = getattr(flight, 'departureAirport', 'N/A')
+            to_airport = getattr(flight, 'arrivalAirport', 'N/A')
+            route_text = f"{from_airport} -> {to_airport}"
+            route_label = ctk.CTkLabel(flight_frame, text=route_text)
+            route_label.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+            
+            # Departure Time
+            departure_time = getattr(flight, 'departureTime', 'N/A')
+            time_label = ctk.CTkLabel(flight_frame, text=str(departure_time))
+            time_label.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+            
+            # Price
+            price = getattr(flight, 'price', 'N/A')
+            price_label = ctk.CTkLabel(flight_frame, text=f"${price}")
+            price_label.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+            
+            # Select Button
+            select_btn = ctk.CTkButton(flight_frame, text="Select", width=80, command=lambda f=flight: self.select_flight(f))
+            select_btn.grid(row=0, column=4, padx=10, pady=10, sticky="ew")
+            
+            # Configure column weights
+            for j in range(5):
+                flight_frame.grid_columnconfigure(j, weight=1)
+
+    def select_flight(self, flight):
+        self.controller.selected_flight = flight
+        self.controller.show_frame("SeatSelectionPage")
 
 
 class ManageFlightsPage(ctk.CTkFrame):
@@ -225,17 +329,83 @@ class ManageFlightsPage(ctk.CTkFrame):
 
         self.controller = controller
 
+        # Navbar
         navbar = ctk.CTkFrame(self, height=50, fg_color="#ffffff")
         navbar.pack(fill="x")
 
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
         ctk.CTkLabel(navbar, text="Manage Flights", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        seat_frame = ctk.CTkFrame(self)
-        seat_frame.pack(padx=20, pady=10)
+        # Create scrollable frame for flight results
+        self.content_frame = ctk.CTkScrollableFrame(self, fg_color="#ffffff")
+        self.content_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
+        # Back button at bottom
         back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
-        back_btn.pack(pady=20)
+        back_btn.pack(pady=10)
+
+        # Create headers
+        headers_frame = ctk.CTkFrame(self.content_frame, fg_color="#f0f0f0")
+        headers_frame.pack(fill="x", pady=(0, 10))
+
+        headers = ["Flight Number", "Route", "Departure Time", "Price", "Seat", "Select"]
+        for col, header in enumerate(headers):
+            header_label = ctk.CTkLabel(headers_frame, text=header, font=("Helvetica", 14, "bold"))
+            header_label.grid(row=0, column=col, padx=5, pady=10, sticky="ew")
+        
+        # Configure column weights for proper spacing
+        for i in range(len(headers)):
+            headers_frame.grid_columnconfigure(i, weight=1)
+
+        # Load flights when frame is shown
+        self.load_flights()
+
+
+    def load_flights(self):
+
+        # Display flights
+        for i, flight in enumerate(customer_list[0].bookings):
+            flight_frame = ctk.CTkFrame(self.content_frame, fg_color="#ffffff", border_width=1)
+            flight_frame.pack(fill="x", pady=2)
+
+            # Flight Number
+            flight_num = getattr(flight, 'flightID', f'FL{i+1}')
+            flight_label = ctk.CTkLabel(flight_frame, text=str(flight_num))
+            flight_label.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+            
+            # Route
+            from_airport = getattr(flight, 'departureAirport', 'N/A')
+            to_airport = getattr(flight, 'arrivalAirport', 'N/A')
+            route_text = f"{from_airport} -> {to_airport}"
+            route_label = ctk.CTkLabel(flight_frame, text=route_text)
+            route_label.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+            
+            # Departure Time
+            departure_time = getattr(flight, 'departureTime', 'N/A')
+            time_label = ctk.CTkLabel(flight_frame, text=str(departure_time))
+            time_label.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+            
+            # Price
+            price = getattr(flight, 'totalPrice', 'N/A')
+            price_label = ctk.CTkLabel(flight_frame, text=f"${price}")
+            price_label.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+
+            # Seat
+            seat = getattr(flight, 'seatNumber', 'N/A')
+            price_label = ctk.CTkLabel(flight_frame, text=str(seat))
+            price_label.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+            
+            # Select Button
+            select_btn = ctk.CTkButton(flight_frame, text="Select", width=80, command=lambda f=flight: self.select_flight(f))
+            select_btn.grid(row=0, column=4, padx=10, pady=10, sticky="ew")
+            
+            # Configure column weights
+            for j in range(5):
+                flight_frame.grid_columnconfigure(j, weight=1)
+
+    def select_flight(self, flight):
+        self.controller.selected_flight = flight
+        self.controller.show_frame("SeatSelectionPage")
 
 
 class SeatSelectionPage(ctk.CTkFrame):
@@ -250,22 +420,47 @@ class SeatSelectionPage(ctk.CTkFrame):
         ctk.CTkLabel(navbar, text="FlyDreamAir", font=("Helvetica", 20)).pack(side="left", padx=20)
         ctk.CTkLabel(navbar, text="Seat Selection", font=("Helvetica", 18)).place(relx=0.5, rely=0.5, anchor="center")
 
-        seat_frame = ctk.CTkFrame(self, fg_color="#ffffff")
-        seat_frame.pack(padx=20, pady=10)
+        self.seat_frame = ctk.CTkFrame(self, fg_color="#ffffff")
+        self.seat_frame.pack(padx=20, pady=10)
 
         self.seats = {}
-        cols = 32
-        cols_labels = ['A','B','C','D','E','F','G','H','J']
+        self.cols = 32
+        self.cols_labels = ['A','B','C','D','E','F','G','H','J']
 
-        unavailable_seats = set(random.sample([f"{r+1}{c}" for r in range(cols) for c in cols_labels], k=int(cols*len(cols_labels)*0.15)))
+        submit_btn = ctk.CTkButton(self, text="Submit", command=self.submit_booking)
+        submit_btn.pack(pady=20)
 
-        for r in range(cols):
-            #Add column labels above
-            col_label = ctk.CTkLabel(seat_frame, text=str(r+1), font=("Helvetica", 12, "bold"))
+        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
+        back_btn.pack(pady=20)
+
+        self.selected_seats = set()
+        
+        # Load seats when frame is first shown
+        self.load_seats()
+
+    def load_seats(self):
+        """Load and display seats based on current selected flight"""
+        # Clear existing seats
+
+        #print(self.controller.selected_flight.bookedSeats)
+
+        for widget in self.seat_frame.winfo_children():
+            widget.destroy()
+        
+        # Get booked seats from selected flight in the App class
+        if hasattr(self.controller, 'selected_flight') and self.controller.selected_flight and hasattr(self.controller.selected_flight, 'bookedSeats'):
+            unavailable_seats = set(self.controller.selected_flight.bookedSeats)
+            print(unavailable_seats)
+        else:
+            unavailable_seats = set()
+
+        # Add column headers
+        for r in range(self.cols):
+            col_label = ctk.CTkLabel(self.seat_frame, text=str(r+1), font=("Helvetica", 12, "bold"))
             col_label.grid(row=0, column=r+1, padx=3, pady=(3, 8))
 
         # Add row labels (letters) on the left and seat buttons
-        for c_idx, c in enumerate(cols_labels):
+        for c_idx, c in enumerate(self.cols_labels):
             # Add extra padding for row spacing
             extra_pady = 0
             if c_idx == 2:
@@ -274,13 +469,13 @@ class SeatSelectionPage(ctk.CTkFrame):
                 extra_pady = 15
             
             # Add row label on the left
-            row_label = ctk.CTkLabel(seat_frame, text=c, font=("Helvetica", 12, "bold"))
+            row_label = ctk.CTkLabel(self.seat_frame, text=c, font=("Helvetica", 12, "bold"))
             row_label.grid(row=c_idx+1, column=0, padx=(3, 8), pady=(3, 3 + extra_pady))
             
             # Add seat buttons
-            for r in range(cols):
-                seat_id = f"{r+1}{c}"
-                btn = ctk.CTkButton(seat_frame, text="", width=25, height=25, corner_radius=5)
+            for r in range(self.cols):
+                seat_id = f"{c}{r+1}"
+                btn = ctk.CTkButton(self.seat_frame, text="", width=25, height=25, corner_radius=5)
                 
                 btn.grid(row=c_idx+1, column=r+1, padx=3, pady=(3, 3 + extra_pady))
 
@@ -290,11 +485,11 @@ class SeatSelectionPage(ctk.CTkFrame):
                     btn.configure(fg_color="gray", hover_color="#b3b3b3")
                     btn.configure(command=lambda s=seat_id: self.toggle_seat(s))
                 self.seats[seat_id] = btn
-
-        back_btn = ctk.CTkButton(self, text="Back", command=lambda: controller.show_frame("MainPage"))
-        back_btn.pack(pady=20)
-
-        self.selected_seats = set()
+    
+    #Override tkraise to refresh frame when page is loaded
+    def tkraise(self, aboveThis=None):
+        super().tkraise(aboveThis)
+        self.load_seats()
 
     def toggle_seat(self, seat_id):
         btn = self.seats[seat_id]
@@ -304,6 +499,42 @@ class SeatSelectionPage(ctk.CTkFrame):
         else:
             btn.configure(fg_color="blue")
             self.selected_seats.add(seat_id)
+
+    def submit_booking(self):
+        if not self.selected_seats:
+            error_frame = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0)
+            error_frame.pack(padx=10)
+
+            error_label = ctk.CTkLabel(error_frame, text="No Seats Selected", font=("Helvetica", 14, "bold"))
+            error_label.pack(pady=10, padx=10)
+            return
+
+        selected_flight = self.controller.selected_flight
+
+        # Update the flight's booked seats
+        if hasattr(selected_flight, 'bookedSeats'):
+            selected_flight.bookedSeats.extend(list(self.selected_seats))
+        
+        
+        for seat in self.selected_seats:
+            booking = Booking(selected_flight.flightID, len(booking_list), datetime.datetime.today().strftime('%Y-%m-%d'), selected_flight.price, seat)
+            booking_list.append(booking)
+            customer_list[0].bookings.append(booking)
+
+        with open('customers.pkl', 'wb') as f:  # open a text file
+            pickle.dump(customer_list, f) # serialize the list
+            f.close()
+        
+        with open('bookings.pkl', 'wb') as f:  # open a text file
+            pickle.dump(booking_list, f) # serialize the list
+            f.close()
+
+        with open('flights.pkl', 'wb') as f:  # open a text file
+            pickle.dump(flight_list, f) # serialize the list
+            f.close()
+        
+        # Navigate to confirmation page or back to main page
+        self.controller.show_frame("MainPage")
 
 
 class InFlightServicesPage(ctk.CTkFrame):
@@ -537,6 +768,8 @@ class ContactUsPage(ctk.CTkFrame):
 
 services_list = []
 customer_list = []
+flight_list = []
+booking_list = []
 customer_id = 0
 
 #Read customer data
@@ -556,8 +789,29 @@ try:
 except:
     pass
 
-#Sort customer list based on customerID
+#Sort serivces list based on serviceID
 services_list.sort(key=lambda x: x.serviceID)
+
+#Read in flights data
+try:
+    with open('flights.pkl', 'rb') as f:
+        flight_list = pickle.load(f) # deserialize into object using load()
+except:
+    pass
+
+#Sort customer list based on customerID
+flight_list.sort(key=lambda x: x.flightID)
+
+#Read in booking data
+try:
+    with open('bookings.pkl', 'rb') as f:
+        booking_list = pickle.load(f) # deserialize into object using load()
+except:
+    pass
+
+#Sort customer list based on customerID
+booking_list.sort(key=lambda x: x.bookingID)
+
 #---------------------------------Main---------------------------------
 
 if __name__ == "__main__":
